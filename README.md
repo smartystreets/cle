@@ -3,24 +3,24 @@ Command-Line Editor (CLE)
 
 The Command-Line Editor (CLE) Go library provides basic command-line editing and command history functions.
 
-####Features
+#### Features
 
  * Command editing
  * Command history; persistence across sessions
  * Support for most Linux/Unix based systems (MS Windows is not supported)
  
-##Import
+## Import
 ```
 import github.com/smartystreets/cle
 ```
 
-##Usage 
+## Usage 
 ```
 commandLineEditor := cle.NewCLE()
 command := commandLineEditor.ReadInput("Enter something: ")
 ``` 
 
-####Options
+#### Options
 Specify any number of comma separated options in `NewCLE()`
 
  * Enable command history load/save. If file is specified, the command history is loaded
@@ -52,5 +52,5 @@ cle.HistoryEntryMinimumLength(2)
 cle.ReportErrors(true)
 ```
 
-####Example
+#### Example
 See `cmd/main.go` for a fully functional sample.
