@@ -17,6 +17,8 @@ const (
 	HISTORY_ENTRY_LEN_MIN_DEFAULT = 5
 	REPORT_ERRORS_DEFAULT         = false
 
+	CONTROL_A           = 1
+	CONTROL_E           = 5
 	ENTER_KEY           = 13
 	ESCAPE_KEY          = 27
 	UP_ARROW            = 65
@@ -87,6 +89,10 @@ func (this *CLE) ReadInput(prompt string) []byte {
 			continue
 		}
 
+		if this.handleControlKeys(numRead, work) {
+			continue
+		}
+
 		if this.handleEnterKey(numRead, work) {
 			return this.data
 		}
@@ -138,7 +144,7 @@ func (this *CLE) handleArrowKeys(numRead int, work []byte) bool {
 }
 
 func (this *CLE) handleEnterKey(numRead int, work []byte) bool {
-	if numRead != 1 || work[0] != ENTER_KEY {
+	if numRead != 1 || (numRead == 1 && work[0] != ENTER_KEY) {
 		return false
 	}
 
@@ -155,7 +161,7 @@ func (this *CLE) handleEnterKey(numRead int, work []byte) bool {
 }
 
 func (this *CLE) handleDeleteKey(numRead int, work []byte) bool {
-	if numRead != 1 || work[0] != DELETE_KEY {
+	if numRead != 1 || (numRead == 1 && work[0] != DELETE_KEY) {
 		return false
 	}
 
@@ -166,6 +172,26 @@ func (this *CLE) handleDeleteKey(numRead int, work []byte) bool {
 	this.cursorPosition--
 	this.data = remove(this.data, this.cursorPosition)
 	this.repaint()
+	return true
+}
+
+func (this *CLE) handleControlKeys(numRead int, work []byte) bool {
+	if numRead != 1 || !isControlKey(numRead, work) {
+		return false
+	}
+
+	switch work[0] {
+	case CONTROL_A: // beginning of line
+		this.cursorPosition = 0
+		this.repaint()
+	case CONTROL_E: // end of line
+		this.cursorPosition = len(this.data)
+		this.repaint()
+	}
+	//TODO: CONTROL_B delete to beginning of line
+	//      CONTROL_D delete current character
+	//		CONTROL_K delete current character to end of line
+	//		CONTROL_N delete entire line
 	return true
 }
 
@@ -328,6 +354,10 @@ func crlf() {
 
 func isPrintable(c byte) bool {
 	return c >= 32 && c <= 126
+}
+
+func isControlKey(numRead int, work []byte) bool {
+	return numRead == 1 && work[0] < ESCAPE_KEY && work[0] != ENTER_KEY
 }
 
 func insert(slice []byte, position int, character byte) []byte {

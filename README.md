@@ -55,5 +55,9 @@ Debugging: Print errors to the console. (Default `false`)
 cle.ReportErrors(true)
 ```
 
-#### Example
+## Command Editing Keys
+* `CTL-A` - Move to beginning of line
+* `CTL-E` - Move to end of line
+
+#### Example Code
 See `cmd/main.go` for a fully functional sample.
