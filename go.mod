@@ -1,4 +1,4 @@
-module github.com/smartybryan/cle
+module github.com/smartystreets/cle
 
 go 1.14
 
