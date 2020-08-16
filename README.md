@@ -59,5 +59,5 @@ cle.ReportErrors(true)
 * `CTL-A` - Move to beginning of line
 * `CTL-E` - Move to end of line
 
-#### Example Code
+## Example Code
 See `cmd/main.go` for a fully functional sample.
