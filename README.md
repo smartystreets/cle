@@ -20,12 +20,12 @@ commandLineEditor := cle.NewCLE()
 command := commandLineEditor.ReadInput("Enter something: ")
 ``` 
 
-#### Options
+### Options
 Specify any number of comma separated options in `NewCLE()`
 
- * Enable command history load/save. If file is specified, the command history is loaded
- automatically when `NewCLE()` is called. 
- You must explicitly save the history as shown below.
+#### Command History File
+Enable command history load/save. If file is specified, the command history is loaded
+automatically when `NewCLE()` is called. You must explicitly save the history as shown below.
 ```
 commandLineEditor := cle.NewCLE(cle.HistoryFile("/tmp/cle_history.txt"))
 
@@ -34,19 +34,22 @@ commandLineEditor := cle.NewCLE(cle.HistoryFile("/tmp/cle_history.txt"))
 commandLineEditor.SaveHistory()
 ```
 
- * Only save/load the specified number of commands in the history file. (Default `100`)
+#### Command History Size
+Only save/load the specified number of commands in the history file. (Default `100`)
 
 ```
 cle.HistorySize(50)
 ```
 
- * Only add commands to the history that exceed this length. (Default `5`)
+#### Command History Entry Minimum Length
+Only add commands to the history that exceed this length. (Default `5`)
 
 ```
 cle.HistoryEntryMinimumLength(2)
 ```
 
- * Debugging: Print errors to the console. (Default `false`)
+#### Print Errors
+Debugging: Print errors to the console. (Default `false`)
  
 ```
 cle.ReportErrors(true)
