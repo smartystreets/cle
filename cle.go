@@ -67,7 +67,7 @@ func (this *CLE) ReadInput(prompt string) []byte {
 	this.prompt = prompt
 	this.data = []byte{}
 	this.cursorPosition = 0
-	this.repaint(this.data)
+	this.repaint()
 
 	this.openTty()
 	defer this.closeTty()
@@ -110,28 +110,28 @@ func (this *CLE) handleArrowKeys(numRead int, work []byte) bool {
 			return true
 		}
 		this.populateDataWithHistoryEntry()
-		this.repaint(this.data)
+		this.repaint()
 
 	case DOWN_ARROW:
 		if !this.handledDownArrow() {
 			this.clearInputData()
-			this.repaint(this.data)
+			this.repaint()
 			return true
 		}
 		this.populateDataWithHistoryEntry()
-		this.repaint(this.data)
+		this.repaint()
 
 	case RIGHT_ARROW:
 		if !this.handledRightArrow() {
 			return true
 		}
-		this.repaint(this.data)
+		this.repaint()
 
 	case LEFT_ARROW:
 		if !this.handledLeftArrow() {
 			return true
 		}
-		this.repaint(this.data)
+		this.repaint()
 	}
 
 	return true
@@ -165,7 +165,7 @@ func (this *CLE) handleDeleteKey(numRead int, work []byte) bool {
 
 	this.cursorPosition--
 	this.data = remove(this.data, this.cursorPosition)
-	this.repaint(this.data)
+	this.repaint()
 	return true
 }
 
@@ -179,7 +179,7 @@ func (this *CLE) handleAnySingleKey(numRead int, work []byte) bool {
 	}
 	this.data = insert(this.data, this.cursorPosition, work[0])
 	this.cursorPosition++
-	this.repaint(this.data)
+	this.repaint()
 	return true
 }
 
@@ -191,13 +191,13 @@ func (this *CLE) handlePaste(work []byte) {
 		this.data = insert(this.data, this.cursorPosition, c)
 		this.cursorPosition++
 	}
-	this.repaint(this.data)
+	this.repaint()
 }
 
-func (this *CLE) repaint(data []byte) {
-	fmt.Printf("%c%c%c%c", 27, '[', '2', 'K')                 // VT100 clear line
-	fmt.Printf("%c%s%s%c", 13, this.prompt, string(data), 32) // go to beginning and print data
-	for i := len(data) + 1; i > this.cursorPosition; i-- {    // backspace to the current cursor position
+func (this *CLE) repaint() {
+	fmt.Printf("%c%c%c%c", 27, '[', '2', 'K')                      // VT100 clear line
+	fmt.Printf("%c%s%s%c", 13, this.prompt, string(this.data), 32) // go to beginning and print data
+	for i := len(this.data) + 1; i > this.cursorPosition; i-- {    // backspace to the current cursor position
 		fmt.Printf("%c", 8)
 	}
 }

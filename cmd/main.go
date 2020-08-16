@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 
-	"bitbucket.org/smartybryan/cle"
+	"github.com/smartystreets/cle"
 )
 
 func main() {
