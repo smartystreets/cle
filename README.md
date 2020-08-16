@@ -21,7 +21,7 @@ command := commandLineEditor.ReadInput("Enter something: ")
 ``` 
 
 ### Options
-Specify any number of comma separated options in `NewCLE()`
+Specify any number of comma separated options as parameters to `NewCLE()`
 
 #### Command History File
 Enable command history load/save. If file is specified, the command history is loaded
