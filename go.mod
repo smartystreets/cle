@@ -1,4 +1,4 @@
-module bitbucket.org/smartybryan/cle
+module github.com/smartybryan/cle
 
 go 1.14
 
