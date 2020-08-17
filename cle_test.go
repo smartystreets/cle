@@ -157,6 +157,49 @@ func (this *CLEFixture) TestHandleArrowKeys() {
 	this.So(cleObj.handleArrowKeys(3, buffer), should.BeTrue)
 }
 
+func (this *CLEFixture) TestHandleControlKeys() {
+	cleObj := NewCLE()
+
+	cleObj.data = []byte("test command")
+	buffer := []byte{CONTROL_A, 0, 0}
+	cleObj.cursorPosition = 5
+	cleObj.handleControlKeys(1, buffer)
+	this.So(cleObj.cursorPosition, should.BeZeroValue)
+
+	cleObj.data = []byte("test command")
+	buffer = []byte{CONTROL_B, 0, 0}
+	cleObj.cursorPosition = 5
+	cleObj.handleControlKeys(1, buffer)
+	this.So(cleObj.cursorPosition, should.Equal, 0)
+	this.So(cleObj.data, should.Resemble, []byte("command"))
+
+	cleObj.data = []byte("test command")
+	buffer = []byte{CONTROL_D, 0, 0}
+	cleObj.cursorPosition = 5
+	cleObj.handleControlKeys(1, buffer)
+	this.So(cleObj.cursorPosition, should.Equal, 5)
+	this.So(cleObj.data, should.Resemble, []byte("test ommand"))
+
+	cleObj.data = []byte("test command")
+	buffer = []byte{CONTROL_E, 0, 0}
+	cleObj.cursorPosition = 5
+	cleObj.handleControlKeys(1, buffer)
+	this.So(cleObj.cursorPosition, should.Equal, len(cleObj.data))
+
+	cleObj.data = []byte("test command")
+	buffer = []byte{CONTROL_K, 0, 0}
+	cleObj.cursorPosition = 5
+	cleObj.handleControlKeys(1, buffer)
+	this.So(cleObj.data, should.Resemble, []byte("test "))
+
+	cleObj.data = []byte("test command")
+	buffer = []byte{CONTROL_N, 0, 0}
+	cleObj.cursorPosition = 5
+	cleObj.handleControlKeys(1, buffer)
+	this.So(cleObj.cursorPosition, should.Equal, 0)
+	this.So(len(cleObj.data), should.Equal, 0)
+}
+
 func (this *CLEFixture) TestHistoryHandledUpArrow() {
 	cleObj := NewCLE()
 	cleObj.history.commands = cleObj.history.commands[:0]

@@ -57,7 +57,11 @@ cle.ReportErrors(true)
 
 ## Command Editing Keys
 * `CTL-A` - Move to beginning of line
+* `CTL-B` - Delete to beginning of line
+* `CTL-D` - Delete current character
 * `CTL-E` - Move to end of line
+* `CTL-K` - Delete current character to end of line
+* `CTL-N` - Delete entire line
 
 ## Example Code
 See `cmd/main.go` for a fully functional sample.

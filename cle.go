@@ -18,7 +18,11 @@ const (
 	REPORT_ERRORS_DEFAULT         = false
 
 	CONTROL_A           = 1
+	CONTROL_B           = 2
+	CONTROL_D           = 4
 	CONTROL_E           = 5
+	CONTROL_K           = 11
+	CONTROL_N           = 14
 	ENTER_KEY           = 13
 	ESCAPE_KEY          = 27
 	UP_ARROW            = 65
@@ -184,14 +188,26 @@ func (this *CLE) handleControlKeys(numRead int, work []byte) bool {
 	case CONTROL_A: // beginning of line
 		this.cursorPosition = 0
 		this.repaint()
+	case CONTROL_B: // delete to beginning of line
+		this.data = this.data[this.cursorPosition:]
+		this.cursorPosition = 0
+		this.repaint()
+	case CONTROL_D: // delete current character
+		if this.cursorPosition < len(this.data) {
+			this.data = remove(this.data, this.cursorPosition)
+			this.repaint()
+		}
 	case CONTROL_E: // end of line
 		this.cursorPosition = len(this.data)
 		this.repaint()
+	case CONTROL_K: // delete current character to end of line
+		this.data = this.data[:this.cursorPosition]
+		this.repaint()
+	case CONTROL_N: // delete entire line
+		this.data = this.data[:0]
+		this.cursorPosition = 0
+		this.repaint()
 	}
-	//TODO: CONTROL_B delete to beginning of line
-	//      CONTROL_D delete current character
-	//		CONTROL_K delete current character to end of line
-	//		CONTROL_N delete entire line
 	return true
 }
 
