@@ -1,6 +1,8 @@
 package cle
 
 import (
+	"bufio"
+	"bytes"
 	"testing"
 
 	"github.com/smartystreets/assertions/should"
@@ -160,8 +162,11 @@ func (this *CLEFixture) TestHandleArrowKeys() {
 func (this *CLEFixture) TestHandleControlKeys() {
 	cleObj := NewCLE()
 
+	buffer := []byte{UP_ARROW, 0, 0}
+	this.So(cleObj.handleControlKeys(1, buffer), should.BeFalse)
+
 	cleObj.data = []byte("test command")
-	buffer := []byte{CONTROL_A, 0, 0}
+	buffer = []byte{CONTROL_A, 0, 0}
 	cleObj.cursorPosition = 5
 	cleObj.handleControlKeys(1, buffer)
 	this.So(cleObj.cursorPosition, should.BeZeroValue)
@@ -282,6 +287,37 @@ func (this *CLEFixture) TestClearHistory() {
 
 	cleObj.ClearHistory()
 	this.So(len(cleObj.history.commands), should.BeZeroValue)
+}
+
+func (this *CLEFixture) TestPrepareHistoryForWriting() {
+	cleObj := NewCLE()
+
+	cleObj.data = []byte("this is a history entry")
+	cleObj.saveHistoryEntry()
+
+	cleObj.data = []byte("this is a history entry 2")
+	cleObj.saveHistoryEntry()
+
+	history := cleObj.prepareHistoryForWriting()
+	this.So(len(history), should.Equal, 50)
+	this.So(bytes.Contains(history, []byte("entry 2")), should.BeTrue)
+
+	cleObj.historyMax = 1
+	history = cleObj.prepareHistoryForWriting()
+	this.So(len(history), should.Equal, 26)
+	this.So(bytes.Contains(history, []byte("entry 2")), should.BeTrue)
+}
+
+func (this *CLEFixture) TestLoadHistory() {
+	cleObj := NewCLE()
+
+	reader := bytes.NewReader([]byte("history entry\nhistory entry 2"))
+	scanner := bufio.NewScanner(reader)
+	cleObj.loadHistory(scanner)
+
+	this.So(cleObj.history.currentPosition, should.Equal, 2)
+	this.So(len(cleObj.history.commands), should.Equal, 2)
+	this.So(bytes.Contains(cleObj.history.commands[1], []byte("entry 2")), should.BeTrue)
 }
 
 func (this *CLEFixture) TestInsert() {

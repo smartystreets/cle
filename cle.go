@@ -65,7 +65,7 @@ func (this *CLE) configure(options []Option) *CLE {
 		configure(this)
 	}
 
-	this.loadHistory()
+	this.loadHistory(nil)
 	return this
 }
 
@@ -318,7 +318,10 @@ func (this *CLE) getCurrentHistoryEntry() []byte {
 }
 
 func (this *CLE) SaveHistory() {
-	var history []byte
+	this.writeHistoryFile(this.prepareHistoryForWriting())
+}
+
+func (this *CLE) prepareHistoryForWriting() (history []byte) {
 	// save the last n commands
 	startIndex := len(this.history.commands) - this.historyMax
 	if startIndex < 0 {
@@ -329,24 +332,34 @@ func (this *CLE) SaveHistory() {
 		history = append(history, historyLine...)
 		history = append(history, '\n')
 	}
-
-	this.handleError(ioutil.WriteFile(this.historyFile, history, 0644))
+	return history
 }
 
-func (this *CLE) loadHistory() {
-	if len(this.historyFile) == 0 {
-		return
+func (this *CLE) loadHistory(scanner *bufio.Scanner) {
+	if len(this.historyFile) > 0 {
+		this.readHistoryFile()
 	}
 
-	history, err := ioutil.ReadFile(this.historyFile)
-	if this.handleError(err) {
-		return
+	if scanner != nil {
+		for scanner.Scan() {
+			this.history.commands = append(this.history.commands, scanner.Bytes())
+		}
 	}
-	scanner := bufio.NewScanner(bytes.NewReader(history))
+
+	this.history.currentPosition = len(this.history.commands)
+}
+
+func (this *CLE) writeHistoryFile(history []byte) bool {
+	return this.handleError(ioutil.WriteFile(this.historyFile, history, 0644))
+}
+
+func (this *CLE) readHistoryFile() {
+	file, err := ioutil.ReadFile(this.historyFile)
+	this.handleError(err)
+	scanner := bufio.NewScanner(bytes.NewReader(file))
 	for scanner.Scan() {
 		this.history.commands = append(this.history.commands, scanner.Bytes())
 	}
-	this.history.currentPosition = len(this.history.commands)
 }
 
 func (this *CLE) ClearHistory() {
