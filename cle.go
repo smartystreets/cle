@@ -328,6 +328,7 @@ func (this *CLE) prepareHistoryForWriting() (history []byte) {
 		startIndex = 0
 	}
 	this.history.commands = this.history.commands[startIndex:]
+	this.history.currentPosition = len(this.history.commands)
 	for _, historyLine := range this.history.commands {
 		history = append(history, historyLine...)
 		history = append(history, '\n')
