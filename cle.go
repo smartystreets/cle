@@ -303,7 +303,7 @@ func (this *CLE) populateDataWithHistoryEntry() {
 func (this *CLE) saveHistoryEntry() {
 	if len(this.data) > this.historyEntryMinimumLength {
 		if len(this.history.commands) > 0 {
-			if bytes.Compare(this.history.commands[len(this.history.commands) - 1], this.data) == 0 {
+			if bytes.Compare(this.history.commands[len(this.history.commands)-1], this.data) == 0 {
 				return
 			}
 		}
@@ -344,7 +344,7 @@ func (this *CLE) prepareHistoryForWriting() (history []byte) {
 }
 
 func (this *CLE) loadHistory(scanner *bufio.Scanner) {
-	if len(this.historyFile) > 0 && !strings.HasPrefix(this.historyFile,"bogus") {
+	if len(this.historyFile) > 0 && !strings.HasPrefix(this.historyFile, "bogus") {
 		this.readHistoryFile()
 	}
 
