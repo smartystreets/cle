@@ -18,13 +18,14 @@ type CLEFixture struct {
 }
 
 func (this *CLEFixture) TestOptions() {
+	testHistoryFile := "bogus_filename_used_for_testing"
 	cleObj := NewCLE(
-		HistoryFile("testfile"),
+		HistoryFile(testHistoryFile),
 		HistorySize(10),
 		HistoryEntryMinimumLength(2),
 		ReportErrors(true),
 	)
-	this.So(cleObj.historyFile, should.Equal, "testfile")
+	this.So(cleObj.historyFile, should.Equal, testHistoryFile)
 	this.So(cleObj.historyMax, should.Equal, 10)
 	this.So(cleObj.historyEntryMinimumLength, should.Equal, 2)
 	this.So(cleObj.reportErrors, should.BeTrue)
@@ -227,8 +228,13 @@ func (this *CLEFixture) TestHistoryHandledDownArrow() {
 	cleObj.history.commands = cleObj.history.commands[:0]
 	cleObj.data = []byte("this is a history entry")
 	cleObj.saveHistoryEntry()
+	this.So(len(cleObj.history.commands), should.Equal, 1)
+
 	cleObj.data = []byte("this is a history entry 2")
 	cleObj.saveHistoryEntry()
+	this.So(len(cleObj.history.commands), should.Equal, 2)
+	cleObj.saveHistoryEntry()
+	this.So(len(cleObj.history.commands), should.Equal, 2)
 
 	cleObj.handledUpArrow()
 	cleObj.handledUpArrow()

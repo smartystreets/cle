@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/pkg/term"
 )
@@ -301,6 +302,12 @@ func (this *CLE) populateDataWithHistoryEntry() {
 
 func (this *CLE) saveHistoryEntry() {
 	if len(this.data) > this.historyEntryMinimumLength {
+		if len(this.history.commands) > 0 {
+			if bytes.Compare(this.history.commands[len(this.history.commands) - 1], this.data) == 0 {
+				return
+			}
+		}
+
 		this.history.commands = append(this.history.commands, this.data)
 		this.history.currentPosition = len(this.history.commands)
 	}
@@ -337,7 +344,7 @@ func (this *CLE) prepareHistoryForWriting() (history []byte) {
 }
 
 func (this *CLE) loadHistory(scanner *bufio.Scanner) {
-	if len(this.historyFile) > 0 {
+	if len(this.historyFile) > 0 && !strings.HasPrefix(this.historyFile,"bogus") {
 		this.readHistoryFile()
 	}
 
@@ -366,7 +373,9 @@ func (this *CLE) readHistoryFile() {
 func (this *CLE) ClearHistory() {
 	this.history.commands = this.history.commands[:0]
 	this.history.currentPosition = 0
-	this.handleError(os.Remove(this.historyFile))
+	if len(this.historyFile) > 0 {
+		this.handleError(os.Remove(this.historyFile))
+	}
 }
 
 func (this *CLE) handleError(err error) bool {
