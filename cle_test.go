@@ -24,6 +24,7 @@ func (this *CLEFixture) TestOptions() {
 		HistorySize(10),
 		HistoryEntryMinimumLength(2),
 		ReportErrors(true),
+		TestMode(true),
 	)
 	this.So(cleObj.historyFile, should.Equal, testHistoryFile)
 	this.So(cleObj.historyMax, should.Equal, 10)
@@ -32,7 +33,7 @@ func (this *CLEFixture) TestOptions() {
 }
 
 func (this *CLEFixture) TestHandleEnterKey() {
-	cleObj := NewCLE()
+	cleObj := NewCLE(TestMode(true))
 
 	buffer := []byte{32, 0, 0}
 	handled := cleObj.handleEnterKey(1, buffer)
@@ -48,7 +49,7 @@ func (this *CLEFixture) TestHandleEnterKey() {
 }
 
 func (this *CLEFixture) TestHandleEnterKeyClearHistory() {
-	cleObj := NewCLE()
+	cleObj := NewCLE(TestMode(true))
 	buffer := []byte{13, 0, 0}
 	cleObj.history.commands = cleObj.history.commands[:0]
 	cleObj.data = []byte("this is a history entry")
@@ -62,7 +63,7 @@ func (this *CLEFixture) TestHandleEnterKeyClearHistory() {
 }
 
 func (this *CLEFixture) TestHandleDeleteKey() {
-	cleObj := NewCLE()
+	cleObj := NewCLE(TestMode(true))
 	buffer := []byte{32, 0, 0}
 	handled := cleObj.handleDeleteKey(1, buffer)
 	this.So(handled, should.BeFalse)
@@ -83,7 +84,7 @@ func (this *CLEFixture) TestHandleDeleteKey() {
 }
 
 func (this *CLEFixture) TestHandleAnySingleKey() {
-	cleObj := NewCLE()
+	cleObj := NewCLE(TestMode(true))
 
 	buffer := []byte{'a', 'b', 0} // multiple keys are unhandled
 	handled := cleObj.handleAnySingleKey(2, buffer)
@@ -109,7 +110,7 @@ func (this *CLEFixture) TestHandleAnySingleKey() {
 }
 
 func (this *CLEFixture) TestHandlePaste() {
-	cleObj := NewCLE()
+	cleObj := NewCLE(TestMode(true))
 
 	buffer := []byte{'a', 'b', 'c'}
 	cleObj.handlePaste(buffer)
@@ -120,7 +121,7 @@ func (this *CLEFixture) TestHandlePaste() {
 }
 
 func (this *CLEFixture) TestHandleArrowKeys() {
-	cleObj := NewCLE()
+	cleObj := NewCLE(TestMode(true))
 
 	buffer := []byte{ESCAPE_KEY, 0, 0}
 	this.So(cleObj.handleArrowKeys(3, buffer), should.BeFalse)
@@ -161,7 +162,7 @@ func (this *CLEFixture) TestHandleArrowKeys() {
 }
 
 func (this *CLEFixture) TestHandleControlKeys() {
-	cleObj := NewCLE()
+	cleObj := NewCLE(TestMode(true))
 
 	buffer := []byte{UP_ARROW, 0, 0}
 	this.So(cleObj.handleControlKeys(1, buffer), should.BeFalse)
@@ -207,7 +208,7 @@ func (this *CLEFixture) TestHandleControlKeys() {
 }
 
 func (this *CLEFixture) TestHistoryHandledUpArrow() {
-	cleObj := NewCLE()
+	cleObj := NewCLE(TestMode(true))
 	cleObj.history.commands = cleObj.history.commands[:0]
 	this.So(cleObj.getCurrentHistoryEntry(), should.Resemble, []byte(""))
 
@@ -224,7 +225,7 @@ func (this *CLEFixture) TestHistoryHandledUpArrow() {
 }
 
 func (this *CLEFixture) TestHistoryHandledDownArrow() {
-	cleObj := NewCLE()
+	cleObj := NewCLE(TestMode(true))
 	cleObj.history.commands = cleObj.history.commands[:0]
 	cleObj.data = []byte("this is a history entry")
 	cleObj.saveHistoryEntry()
@@ -248,7 +249,7 @@ func (this *CLEFixture) TestHistoryHandledDownArrow() {
 }
 
 func (this *CLEFixture) TestHandledLeftAndRightArrows() {
-	cleObj := NewCLE()
+	cleObj := NewCLE(TestMode(true))
 	cleObj.data = []byte("1234")
 
 	cleObj.cursorPosition = 0
@@ -271,7 +272,7 @@ func (this *CLEFixture) TestHandledLeftAndRightArrows() {
 }
 
 func (this *CLEFixture) TestPopulateDataWithHistoryEntry() {
-	cleObj := NewCLE()
+	cleObj := NewCLE(TestMode(true))
 	cleObj.history.commands = cleObj.history.commands[:0]
 	cleObj.data = []byte("this is a history entry")
 	cleObj.saveHistoryEntry()
@@ -285,7 +286,7 @@ func (this *CLEFixture) TestPopulateDataWithHistoryEntry() {
 }
 
 func (this *CLEFixture) TestClearHistory() {
-	cleObj := NewCLE()
+	cleObj := NewCLE(TestMode(true))
 
 	cleObj.history.commands = append(cleObj.history.commands, []byte("testing1"))
 	cleObj.history.commands = append(cleObj.history.commands, []byte("testing2"))
@@ -296,7 +297,7 @@ func (this *CLEFixture) TestClearHistory() {
 }
 
 func (this *CLEFixture) TestPrepareHistoryForWriting() {
-	cleObj := NewCLE()
+	cleObj := NewCLE(TestMode(true))
 
 	cleObj.data = []byte("this is a history entry")
 	cleObj.saveHistoryEntry()
@@ -315,7 +316,7 @@ func (this *CLEFixture) TestPrepareHistoryForWriting() {
 }
 
 func (this *CLEFixture) TestLoadHistory() {
-	cleObj := NewCLE()
+	cleObj := NewCLE(TestMode(true))
 
 	reader := bytes.NewReader([]byte("history entry\nhistory entry 2"))
 	scanner := bufio.NewScanner(reader)

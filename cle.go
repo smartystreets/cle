@@ -45,6 +45,7 @@ type CLE struct {
 	historyMax                int
 	historyEntryMinimumLength int
 	reportErrors              bool
+	testMode                  bool
 }
 
 type CommandHistory struct {
@@ -238,6 +239,10 @@ func (this *CLE) handlePaste(work []byte) {
 }
 
 func (this *CLE) repaint() {
+	if this.testMode {
+		return
+	}
+
 	fmt.Printf("%c%c%c%c", 27, '[', '2', 'K')                      // VT100 clear line
 	fmt.Printf("%c%s%s%c", 13, this.prompt, string(this.data), 32) // go to beginning and print data
 	for i := len(this.data) + 1; i > this.cursorPosition; i-- {    // backspace to the current cursor position
@@ -302,15 +307,18 @@ func (this *CLE) populateDataWithHistoryEntry() {
 
 func (this *CLE) saveHistoryEntry() {
 	if len(this.data) > this.historyEntryMinimumLength {
-		if len(this.history.commands) > 0 {
-			if bytes.Compare(this.history.commands[len(this.history.commands)-1], this.data) == 0 {
-				return
-			}
+		if this.commandIsAlreadyPreviousEntryInHistory() {
+			return
 		}
 
 		this.history.commands = append(this.history.commands, this.data)
 		this.history.currentPosition = len(this.history.commands)
 	}
+}
+
+func (this *CLE) commandIsAlreadyPreviousEntryInHistory() bool {
+	return len(this.history.commands) > 0 &&
+		bytes.Compare(this.history.commands[len(this.history.commands)-1], this.data) == 0
 }
 
 func (this *CLE) getCurrentHistoryEntry() []byte {

@@ -19,3 +19,8 @@ func HistoryEntryMinimumLength(historyEntryMinLen int) Option {
 func ReportErrors(reportErrors bool) Option {
 	return func(c *CLE) { c.reportErrors = reportErrors }
 }
+
+// disables terminal output for testing
+func TestMode(testMode bool) Option {
+	return func(c *CLE) { c.testMode = testMode }
+}
