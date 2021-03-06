@@ -224,6 +224,45 @@ func (this *CLEFixture) TestHistoryHandledUpArrow() {
 	this.So(cleObj.history.currentPosition, should.BeZeroValue)
 }
 
+func (this *CLEFixture) TestHistoryHandledUpArrowWithDefaultSearchChar() {
+	cleObj := NewCLE(TestMode(true))
+	cleObj.history.commands = cleObj.history.commands[:0]
+	this.So(cleObj.getCurrentHistoryEntry(), should.Resemble, []byte(""))
+
+	cleObj.data = []byte("this is a history entry 1")
+	cleObj.saveHistoryEntry()
+	cleObj.data = []byte("this is a history entry 2")
+	cleObj.saveHistoryEntry()
+	cleObj.data = []byte("another history entry")
+	cleObj.saveHistoryEntry()
+
+	cleObj.data = []byte(":is a")
+	cleObj.handledUpArrow()
+	this.So(cleObj.getCurrentHistoryEntry(), should.Resemble, []byte("this is a history entry 2"))
+	cleObj.handledUpArrow()
+	this.So(cleObj.getCurrentHistoryEntry(), should.Resemble, []byte("this is a history entry 1"))
+	cleObj.handledDownArrow()
+	this.So(cleObj.getCurrentHistoryEntry(), should.Resemble, []byte("this is a history entry 2"))
+	cleObj.handledDownArrow()
+	this.So(cleObj.data, should.Resemble, []byte(":is a"))
+	this.So(cleObj.history.currentPosition, should.Equal, 1)
+}
+
+func (this *CLEFixture) TestHistoryHandledUpArrowWithOptionSearchChar() {
+	cleObj := NewCLE(TestMode(true), SearchModeChar('~'))
+	cleObj.history.commands = cleObj.history.commands[:0]
+	this.So(cleObj.getCurrentHistoryEntry(), should.Resemble, []byte(""))
+
+	cleObj.data = []byte("this is a history entry")
+	cleObj.saveHistoryEntry()
+	cleObj.data = []byte("another history entry")
+	cleObj.saveHistoryEntry()
+
+	cleObj.data = []byte("~this")
+	cleObj.handledUpArrow()
+	this.So(cleObj.getCurrentHistoryEntry(), should.Resemble, []byte("this is a history entry"))
+}
+
 func (this *CLEFixture) TestHistoryHandledDownArrow() {
 	cleObj := NewCLE(TestMode(true))
 	cleObj.history.commands = cleObj.history.commands[:0]

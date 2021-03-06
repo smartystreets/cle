@@ -17,6 +17,7 @@ const (
 	HISTORY_MAX_DEFAULT           = 100
 	HISTORY_ENTRY_LEN_MIN_DEFAULT = 5
 	REPORT_ERRORS_DEFAULT         = false
+	SEARCH_MODE_CHAR_DEFAULT      = ':'
 
 	CONTROL_A           = 1
 	CONTROL_B           = 2
@@ -36,6 +37,7 @@ const (
 
 type CLE struct {
 	data           []byte
+	searchFor      []byte
 	terminal       *term.Term
 	prompt         string
 	cursorPosition int
@@ -44,6 +46,7 @@ type CLE struct {
 	historyFile               string
 	historyMax                int
 	historyEntryMinimumLength int
+	searchModeChar            byte
 	reportErrors              bool
 	testMode                  bool
 }
@@ -62,6 +65,7 @@ func (this *CLE) configure(options []Option) *CLE {
 	this.historyEntryMinimumLength = HISTORY_ENTRY_LEN_MIN_DEFAULT
 	this.reportErrors = REPORT_ERRORS_DEFAULT
 	this.history = CommandHistory{}
+	this.searchModeChar = SEARCH_MODE_CHAR_DEFAULT
 
 	for _, configure := range options {
 		configure(this)
@@ -126,6 +130,14 @@ func (this *CLE) handleArrowKeys(numRead int, work []byte) bool {
 
 	case DOWN_ARROW:
 		if !this.handledDownArrow() {
+			if this.isSearching() {
+				this.data = append(this.data[:0], this.searchModeChar)
+				this.data = append(this.data, this.searchFor...)
+				this.cursorPosition = len(this.data)
+				this.clearSearchMode()
+				this.repaint()
+				return true
+			}
 			this.clearInputData()
 			this.repaint()
 			return true
@@ -154,7 +166,13 @@ func (this *CLE) handleEnterKey(numRead int, work []byte) bool {
 		return false
 	}
 
-	crlf()
+	if len(this.data) > 0 && this.data[0] == this.searchModeChar {
+		this.clearInputData()
+		return true
+	}
+
+	this.clearSearchMode()
+	this.crlf()
 
 	if string(this.data) == "!clear" {
 		this.ClearHistory()
@@ -250,6 +268,14 @@ func (this *CLE) repaint() {
 	}
 }
 
+func (this *CLE) crlf() {
+	if this.testMode {
+		return
+	}
+
+	fmt.Printf("%c%c", 10, 13)
+}
+
 func (this *CLE) openTty() {
 	this.terminal, _ = term.Open(TTY)
 	this.handleError(term.RawMode(this.terminal))
@@ -265,7 +291,32 @@ func (this *CLE) clearInputData() {
 	this.cursorPosition = 0
 }
 
+func (this *CLE) clearSearchMode() {
+	this.searchFor = this.searchFor[:0]
+	this.history.currentPosition = len(this.history.commands)
+}
+
+func (this *CLE) isSearching() bool {
+	return len(this.searchFor) > 0
+}
+
+func (this *CLE) searchMatch(i int) bool {
+	equalsPrevious := false
+	if this.history.currentPosition < len(this.history.commands) {
+		//equalsPrevious = bytes.Compare(bytes.ToLower(this.history.commands[i]), bytes.ToLower(this.history.commands[this.history.currentPosition])) == 0
+		equalsPrevious = bytes.Compare(bytes.ToLower(this.history.commands[i]), bytes.ToLower(this.data)) == 0
+	}
+
+	if !equalsPrevious && bytes.Contains(bytes.ToLower(this.history.commands[i]), bytes.ToLower(this.searchFor)) {
+		this.history.currentPosition = i
+		return true
+	}
+	return false
+}
+
 func (this *CLE) handledLeftArrow() bool {
+	this.clearSearchMode()
+
 	if this.cursorPosition <= 0 {
 		return false
 	}
@@ -274,6 +325,8 @@ func (this *CLE) handledLeftArrow() bool {
 }
 
 func (this *CLE) handledRightArrow() bool {
+	this.clearSearchMode()
+
 	if this.cursorPosition > len(this.data)-1 {
 		return false
 	}
@@ -282,6 +335,24 @@ func (this *CLE) handledRightArrow() bool {
 }
 
 func (this *CLE) handledUpArrow() bool {
+	if this.isSearching() && len(this.data) == 0 {
+		this.clearSearchMode()
+	}
+
+	if !this.isSearching() && len(this.data) > 1 && this.data[0] == this.searchModeChar {
+		this.searchFor = append(this.searchFor, this.data[1:]...)
+	}
+
+	if this.isSearching() {
+		for i := this.history.currentPosition - 1; i >= 0; i-- {
+			if this.searchMatch(i) {
+				return true
+			}
+		}
+		this.history.currentPosition = 0
+		return false
+	}
+
 	this.history.currentPosition--
 	if this.history.currentPosition < 0 {
 		this.history.currentPosition = 0
@@ -291,6 +362,15 @@ func (this *CLE) handledUpArrow() bool {
 }
 
 func (this *CLE) handledDownArrow() bool {
+	if this.isSearching() {
+		for i := this.history.currentPosition + 1; i < len(this.history.commands); i++ {
+			if this.searchMatch(i) {
+				return true
+			}
+		}
+		return false
+	}
+
 	this.history.currentPosition++
 	if this.history.currentPosition >= len(this.history.commands) {
 		this.history.currentPosition = len(this.history.commands)
@@ -394,10 +474,6 @@ func (this *CLE) handleError(err error) bool {
 }
 
 ////////////////////////////////////////////
-
-func crlf() {
-	fmt.Printf("%c%c", 10, 13)
-}
 
 func isPrintable(c byte) bool {
 	return c >= 32 && c <= 126
