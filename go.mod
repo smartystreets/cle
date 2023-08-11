@@ -1,10 +1,11 @@
 module github.com/smartystreets/cle
 
-go 1.14
+go 1.17
 
 require (
-	github.com/pkg/term v0.0.0-20200520122047-c3ffed290a03
-	github.com/smartystreets/assertions v1.1.1
-	github.com/smartystreets/gunit v1.3.5
-	golang.org/x/sys v0.0.0-20200806125547-5acd03effb82 // indirect
+	github.com/pkg/term v1.1.0
+	github.com/smarty/assertions v1.15.1
+	github.com/smarty/gunit v1.5.0
 )
+
+require golang.org/x/sys v0.11.0 // indirect
