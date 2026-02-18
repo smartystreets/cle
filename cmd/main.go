@@ -16,7 +16,6 @@ func main() {
 		data := commandLineEditor.ReadInput("Enter string: ")
 		commandLineEditor.SaveHistory()
 		if len(data) == 1 && bytes.ToLower(data)[0] == 'q' {
-			commandLineEditor.SaveHistory()
 			break
 		}
 	}

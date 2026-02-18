@@ -4,9 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/pkg/term"
 )
@@ -82,6 +80,9 @@ func (this *CLE) ReadInput(prompt string) []byte {
 	this.repaint()
 
 	this.openTty()
+	if this.terminal == nil {
+		return nil
+	}
 	defer this.closeTty()
 
 	for {
@@ -162,7 +163,7 @@ func (this *CLE) handleArrowKeys(numRead int, work []byte) bool {
 }
 
 func (this *CLE) handleEnterKey(numRead int, work []byte) bool {
-	if numRead != 1 || (numRead == 1 && work[0] != ENTER_KEY) {
+	if numRead != 1 || work[0] != ENTER_KEY {
 		return false
 	}
 
@@ -185,7 +186,7 @@ func (this *CLE) handleEnterKey(numRead int, work []byte) bool {
 }
 
 func (this *CLE) handleDeleteKey(numRead int, work []byte) bool {
-	if numRead != 1 || (numRead == 1 && work[0] != DELETE_KEY) {
+	if numRead != 1 || work[0] != DELETE_KEY {
 		return false
 	}
 
@@ -277,7 +278,12 @@ func (this *CLE) crlf() {
 }
 
 func (this *CLE) openTty() {
-	this.terminal, _ = term.Open(TTY)
+	var err error
+	this.terminal, err = term.Open(TTY)
+	if err != nil {
+		this.handleError(err)
+		return
+	}
 	this.handleError(term.RawMode(this.terminal))
 }
 
@@ -304,7 +310,7 @@ func (this *CLE) searchMatch(i int) bool {
 	equalsPrevious := false
 	if this.history.currentPosition < len(this.history.commands) {
 		//equalsPrevious = bytes.Compare(bytes.ToLower(this.history.commands[i]), bytes.ToLower(this.history.commands[this.history.currentPosition])) == 0
-		equalsPrevious = bytes.Compare(bytes.ToLower(this.history.commands[i]), bytes.ToLower(this.data)) == 0
+		equalsPrevious = bytes.Equal(bytes.ToLower(this.history.commands[i]), bytes.ToLower(this.data))
 	}
 
 	if !equalsPrevious && bytes.Contains(bytes.ToLower(this.history.commands[i]), bytes.ToLower(this.searchFor)) {
@@ -391,14 +397,16 @@ func (this *CLE) saveHistoryEntry() {
 			return
 		}
 
-		this.history.commands = append(this.history.commands, this.data)
+		entry := make([]byte, len(this.data))
+		copy(entry, this.data)
+		this.history.commands = append(this.history.commands, entry)
 		this.history.currentPosition = len(this.history.commands)
 	}
 }
 
 func (this *CLE) commandIsAlreadyPreviousEntryInHistory() bool {
 	return len(this.history.commands) > 0 &&
-		bytes.Compare(this.history.commands[len(this.history.commands)-1], this.data) == 0
+		bytes.Equal(this.history.commands[len(this.history.commands)-1], this.data)
 }
 
 func (this *CLE) getCurrentHistoryEntry() []byte {
@@ -432,7 +440,7 @@ func (this *CLE) prepareHistoryForWriting() (history []byte) {
 }
 
 func (this *CLE) loadHistory(scanner *bufio.Scanner) {
-	if len(this.historyFile) > 0 && !strings.HasPrefix(this.historyFile, "bogus") {
+	if len(this.historyFile) > 0 {
 		this.readHistoryFile()
 	}
 
@@ -445,12 +453,15 @@ func (this *CLE) loadHistory(scanner *bufio.Scanner) {
 	this.history.currentPosition = len(this.history.commands)
 }
 
-func (this *CLE) writeHistoryFile(history []byte) bool {
-	return this.handleError(ioutil.WriteFile(this.historyFile, history, 0644))
+func (this *CLE) writeHistoryFile(history []byte) {
+	this.handleError(os.WriteFile(this.historyFile, history, 0644))
 }
 
 func (this *CLE) readHistoryFile() {
-	file, err := ioutil.ReadFile(this.historyFile)
+	file, err := os.ReadFile(this.historyFile)
+	if os.IsNotExist(err) {
+		return
+	}
 	this.handleError(err)
 	scanner := bufio.NewScanner(bytes.NewReader(file))
 	for scanner.Scan() {
