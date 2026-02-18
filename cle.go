@@ -87,7 +87,7 @@ func (this *CLE) ReadInput(prompt string) []byte {
 	defer this.closeTty()
 
 	for {
-		work := make([]byte, 3)
+		work := make([]byte, 6)
 		numRead, err := this.terminal.Read(work)
 		if this.handleError(err) {
 			continue
@@ -118,7 +118,39 @@ func (this *CLE) ReadInput(prompt string) []byte {
 }
 
 func (this *CLE) handleArrowKeys(numRead int, work []byte) bool {
-	if numRead != 3 || work[0] != ESCAPE_KEY || work[1] != ARROW_KEY_INDICATOR {
+	if numRead < 2 || work[0] != ESCAPE_KEY {
+		return false
+	}
+
+	// ESC b: Alt+Left (readline-style, e.g. macOS Terminal.app)
+	if numRead == 2 && work[1] == 'b' {
+		this.handledAltLeftArrow()
+		this.repaint()
+		return true
+	}
+
+	// ESC f: Alt+Right (readline-style, e.g. macOS Terminal.app)
+	if numRead == 2 && work[1] == 'f' {
+		this.handledAltRightArrow()
+		this.repaint()
+		return true
+	}
+
+	// ESC [ 1 ; 3 D: Alt+Left (xterm-style)
+	if numRead == 6 && work[1] == ARROW_KEY_INDICATOR && work[2] == '1' && work[3] == ';' && work[4] == '3' && work[5] == LEFT_ARROW {
+		this.handledAltLeftArrow()
+		this.repaint()
+		return true
+	}
+
+	// ESC [ 1 ; 3 C: Alt+Right (xterm-style)
+	if numRead == 6 && work[1] == ARROW_KEY_INDICATOR && work[2] == '1' && work[3] == ';' && work[4] == '3' && work[5] == RIGHT_ARROW {
+		this.handledAltRightArrow()
+		this.repaint()
+		return true
+	}
+
+	if numRead != 3 || work[1] != ARROW_KEY_INDICATOR {
 		return false
 	}
 
@@ -351,6 +383,30 @@ func (this *CLE) handledRightArrow() bool {
 	}
 	this.cursorPosition++
 	return true
+}
+
+func (this *CLE) handledAltLeftArrow() {
+	this.clearSearchMode()
+	pos := this.cursorPosition
+	for pos > 0 && this.data[pos-1] == ' ' {
+		pos--
+	}
+	for pos > 0 && this.data[pos-1] != ' ' {
+		pos--
+	}
+	this.cursorPosition = pos
+}
+
+func (this *CLE) handledAltRightArrow() {
+	this.clearSearchMode()
+	pos := this.cursorPosition
+	for pos < len(this.data) && this.data[pos] == ' ' {
+		pos++
+	}
+	for pos < len(this.data) && this.data[pos] != ' ' {
+		pos++
+	}
+	this.cursorPosition = pos
 }
 
 func (this *CLE) handledUpArrow() bool {

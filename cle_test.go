@@ -458,6 +458,56 @@ func (this *CLEFixture) TestHandlePasteWithUnprintableBytes() {
 	this.So(cleObj.data, should.Resemble, []byte("ab"))
 }
 
+func (this *CLEFixture) TestHandledAltLeftArrow() {
+	cleObj := NewCLE(TestMode(true))
+	cleObj.data = []byte("hello world")
+
+	// inside a word → beginning of that word
+	cleObj.cursorPosition = 8 // on 'r' in "world"
+	cleObj.handledAltLeftArrow()
+	this.So(cleObj.cursorPosition, should.Equal, 6) // 'w'
+
+	// at start of a word → beginning of previous word
+	cleObj.cursorPosition = 6 // on 'w'
+	cleObj.handledAltLeftArrow()
+	this.So(cleObj.cursorPosition, should.Equal, 0) // 'h'
+
+	// in whitespace → beginning of previous word
+	cleObj.cursorPosition = 5 // on ' '
+	cleObj.handledAltLeftArrow()
+	this.So(cleObj.cursorPosition, should.Equal, 0)
+
+	// at beginning → stays at 0
+	cleObj.cursorPosition = 0
+	cleObj.handledAltLeftArrow()
+	this.So(cleObj.cursorPosition, should.BeZeroValue)
+}
+
+func (this *CLEFixture) TestHandledAltRightArrow() {
+	cleObj := NewCLE(TestMode(true))
+	cleObj.data = []byte("hello world")
+
+	// inside a word → first whitespace after that word
+	cleObj.cursorPosition = 2 // on 'l' in "hello"
+	cleObj.handledAltRightArrow()
+	this.So(cleObj.cursorPosition, should.Equal, 5) // the space
+
+	// in whitespace → first whitespace after next word (end of string)
+	cleObj.cursorPosition = 5 // on ' '
+	cleObj.handledAltRightArrow()
+	this.So(cleObj.cursorPosition, should.Equal, 11)
+
+	// at start of last word → end of string
+	cleObj.cursorPosition = 6 // on 'w'
+	cleObj.handledAltRightArrow()
+	this.So(cleObj.cursorPosition, should.Equal, 11)
+
+	// at end → stays at end
+	cleObj.cursorPosition = 11
+	cleObj.handledAltRightArrow()
+	this.So(cleObj.cursorPosition, should.Equal, 11)
+}
+
 func (this *CLEFixture) TestHandleControlW() {
 	cleObj := NewCLE(TestMode(true))
 
