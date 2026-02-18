@@ -118,13 +118,6 @@ func (this *CLE) ReadInput(prompt string) []byte {
 }
 
 func (this *CLE) handleArrowKeys(numRead int, work []byte) bool {
-	// Option+D on macOS Terminal.app sends ∂ (U+2202, UTF-8: 0xE2 0x88 0x82)
-	if numRead == 3 && work[0] == 0xE2 && work[1] == 0x88 && work[2] == 0x82 {
-		this.handledAltD()
-		this.repaint()
-		return true
-	}
-
 	if numRead < 2 || work[0] != ESCAPE_KEY {
 		return false
 	}
@@ -146,6 +139,13 @@ func (this *CLE) handleArrowKeys(numRead int, work []byte) bool {
 	// ESC DEL: Alt+Backspace (delete word left)
 	if numRead == 2 && work[1] == DELETE_KEY {
 		this.handledWordDeleteLeft()
+		this.repaint()
+		return true
+	}
+
+	// Option+D on macOS Terminal.app sends ∂ (U+2202, UTF-8: 0xE2 0x88 0x82)
+	if numRead == 3 && work[0] == 0xE2 && work[1] == 0x88 && work[2] == 0x82 {
+		this.handledAltD()
 		this.repaint()
 		return true
 	}
