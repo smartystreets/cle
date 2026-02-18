@@ -71,6 +71,9 @@ cle.ReportErrors(true)
 * `CTL-E` - Move to end of line
 * `CTL-K` - Delete current character to end of line
 * `CTL-N` - Delete entire line
+* `CTL-W` or `Alt-Backspace` - Delete word to the left
+* `Alt-D` - Delete word to the right
+* `Alt-Arrows` - Move left or right one word
 
 ## Searching History
 You can search through the command stack by typing the Search Mode Character (default is `:`)

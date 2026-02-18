@@ -24,7 +24,7 @@ func SearchModeChar(searchMode byte) Option {
 	return func(c *CLE) { c.searchModeChar = searchMode }
 }
 
-// disables terminal output for testing
+// TestMode disables terminal output for testing
 func TestMode(testMode bool) Option {
 	return func(c *CLE) { c.testMode = testMode }
 }
