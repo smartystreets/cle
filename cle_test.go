@@ -3,6 +3,7 @@ package cle
 import (
 	"bufio"
 	"bytes"
+	"os"
 	"testing"
 
 	"github.com/smarty/assertions/should"
@@ -380,4 +381,91 @@ func (this *CLEFixture) TestRemove() {
 	this.So(remove(data, 2), should.Resemble, []byte("abdef"))
 	this.So(remove(data, 0), should.Resemble, []byte("bcdef"))
 	this.So(remove(data, 99), should.Resemble, []byte("abcdef"))
+}
+
+func (this *CLEFixture) TestHandleEnterKeyWithSearchModePrefix() {
+	cleObj := NewCLE(TestMode(true))
+	cleObj.data = []byte(":search term")
+	handled := cleObj.handleEnterKey(1, []byte{ENTER_KEY, 0, 0})
+	this.So(handled, should.BeTrue)
+	this.So(len(cleObj.data), should.BeZeroValue)
+}
+
+func (this *CLEFixture) TestSaveHistoryEntryMinimumLength() {
+	cleObj := NewCLE(TestMode(true))
+	cleObj.history.commands = cleObj.history.commands[:0]
+
+	cleObj.data = []byte("hi") // 2 chars, below default minimum of 5
+	cleObj.saveHistoryEntry()
+	this.So(len(cleObj.history.commands), should.BeZeroValue)
+
+	cleObj.data = []byte("hello world") // 11 chars, above minimum
+	cleObj.saveHistoryEntry()
+	this.So(len(cleObj.history.commands), should.Equal, 1)
+}
+
+func (this *CLEFixture) TestHistoryEntryIndependenceAfterMutation() {
+	cleObj := NewCLE(TestMode(true))
+	cleObj.history.commands = cleObj.history.commands[:0]
+
+	cleObj.data = []byte("original command")
+	cleObj.saveHistoryEntry()
+
+	// Mutate the original backing array in-place
+	for i := range cleObj.data {
+		cleObj.data[i] = 'X'
+	}
+
+	this.So(cleObj.history.commands[0], should.Resemble, []byte("original command"))
+}
+
+func (this *CLEFixture) TestHistoryFileRoundTrip() {
+	tmpFile, err := os.CreateTemp("", "cle-history-test-*")
+	this.So(err, should.BeNil)
+	tmpFile.Close()
+	defer os.Remove(tmpFile.Name())
+
+	writer := NewCLE(TestMode(true), HistoryFile(tmpFile.Name()))
+	writer.data = []byte("first command here")
+	writer.saveHistoryEntry()
+	writer.data = []byte("second command here")
+	writer.saveHistoryEntry()
+	writer.SaveHistory()
+
+	reader := NewCLE(TestMode(true), HistoryFile(tmpFile.Name()))
+	this.So(len(reader.history.commands), should.Equal, 2)
+	this.So(bytes.Contains(reader.history.commands[0], []byte("first")), should.BeTrue)
+	this.So(bytes.Contains(reader.history.commands[1], []byte("second")), should.BeTrue)
+}
+
+func (this *CLEFixture) TestClearHistoryDeletesFile() {
+	tmpFile, err := os.CreateTemp("", "cle-history-test-*")
+	this.So(err, should.BeNil)
+	tmpFile.Close()
+
+	cleObj := NewCLE(TestMode(true), HistoryFile(tmpFile.Name()))
+	cleObj.history.commands = append(cleObj.history.commands, []byte("some command entry"))
+	cleObj.ClearHistory()
+
+	this.So(len(cleObj.history.commands), should.BeZeroValue)
+	_, statErr := os.Stat(tmpFile.Name())
+	this.So(os.IsNotExist(statErr), should.BeTrue)
+}
+
+func (this *CLEFixture) TestHandlePasteWithUnprintableBytes() {
+	cleObj := NewCLE(TestMode(true))
+	cleObj.handlePaste([]byte{'a', 1, 'b'}) // 1 is a control char, should be skipped
+	this.So(cleObj.data, should.Resemble, []byte("ab"))
+}
+
+func (this *CLEFixture) TestHandleControlKeysUnrecognized() {
+	cleObj := NewCLE(TestMode(true))
+	cleObj.data = []byte("some data")
+	cleObj.cursorPosition = 4
+
+	// CTRL+C (3) satisfies isControlKey but has no case in the switch
+	handled := cleObj.handleControlKeys(1, []byte{3, 0, 0})
+	this.So(handled, should.BeTrue)
+	this.So(cleObj.data, should.Resemble, []byte("some data"))
+	this.So(cleObj.cursorPosition, should.Equal, 4)
 }
