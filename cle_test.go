@@ -508,6 +508,17 @@ func (this *CLEFixture) TestHandledAltRightArrow() {
 	this.So(cleObj.cursorPosition, should.Equal, 11)
 }
 
+func (this *CLEFixture) TestHandleArrowKeysAltBackspace() {
+	cleObj := NewCLE(TestMode(true))
+	cleObj.data = []byte("hello world")
+	cleObj.cursorPosition = 11 // past last char
+
+	// ESC DEL: Alt+Backspace deletes word to the left
+	cleObj.handleArrowKeys(2, []byte{ESCAPE_KEY, DELETE_KEY, 0, 0, 0, 0})
+	this.So(cleObj.data, should.Resemble, []byte("hello "))
+	this.So(cleObj.cursorPosition, should.Equal, 6)
+}
+
 func (this *CLEFixture) TestHandleArrowKeysAltD() {
 	cleObj := NewCLE(TestMode(true))
 	cleObj.data = []byte("hello world")

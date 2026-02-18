@@ -143,6 +143,13 @@ func (this *CLE) handleArrowKeys(numRead int, work []byte) bool {
 		return true
 	}
 
+	// ESC DEL: Alt+Backspace (delete word left)
+	if numRead == 2 && work[1] == DELETE_KEY {
+		this.handledWordDeleteLeft()
+		this.repaint()
+		return true
+	}
+
 	// ESC d: Alt+D (delete word forward)
 	if numRead == 2 && work[1] == 'd' {
 		this.handledAltD()
@@ -276,18 +283,7 @@ func (this *CLE) handleControlKeys(numRead int, work []byte) bool {
 		this.cursorPosition = 0
 		this.repaint()
 	case CONTROL_W: // delete word to the left; if char immediately left is whitespace, delete it too then the word left
-		end := this.cursorPosition
-		start := this.cursorPosition
-		if start > 0 && this.data[start-1] == ' ' {
-			for start > 0 && this.data[start-1] == ' ' {
-				start--
-			}
-		}
-		for start > 0 && this.data[start-1] != ' ' {
-			start--
-		}
-		this.data = append(this.data[:start], this.data[end:]...)
-		this.cursorPosition = start
+		this.handledWordDeleteLeft()
 		this.repaint()
 	}
 	return true
@@ -423,6 +419,21 @@ func (this *CLE) handledAltRightArrow() {
 		pos++
 	}
 	this.cursorPosition = pos
+}
+
+func (this *CLE) handledWordDeleteLeft() {
+	end := this.cursorPosition
+	start := this.cursorPosition
+	if start > 0 && this.data[start-1] == ' ' {
+		for start > 0 && this.data[start-1] == ' ' {
+			start--
+		}
+	}
+	for start > 0 && this.data[start-1] != ' ' {
+		start--
+	}
+	this.data = append(this.data[:start], this.data[end:]...)
+	this.cursorPosition = start
 }
 
 func (this *CLE) handledAltD() {
