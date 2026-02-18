@@ -458,6 +458,45 @@ func (this *CLEFixture) TestHandlePasteWithUnprintableBytes() {
 	this.So(cleObj.data, should.Resemble, []byte("ab"))
 }
 
+func (this *CLEFixture) TestHandleControlW() {
+	cleObj := NewCLE(TestMode(true))
+
+	// Cursor in the middle of a word: delete char at cursor + chars left until space
+	cleObj.data = []byte("hello world")
+	cleObj.cursorPosition = 8 // on 'r'
+	cleObj.handleControlKeys(1, []byte{CONTROL_W, 0, 0})
+	this.So(cleObj.data, should.Resemble, []byte("hello ld"))
+	this.So(cleObj.cursorPosition, should.Equal, 6)
+
+	// Cursor past end: delete chars left until space (no char at cursor)
+	cleObj.data = []byte("hello world")
+	cleObj.cursorPosition = 11 // past last char
+	cleObj.handleControlKeys(1, []byte{CONTROL_W, 0, 0})
+	this.So(cleObj.data, should.Resemble, []byte("hello "))
+	this.So(cleObj.cursorPosition, should.Equal, 6)
+
+	// Cursor at start of word (right after space): deletes only the char at cursor
+	cleObj.data = []byte("hello world")
+	cleObj.cursorPosition = 6 // on 'w'
+	cleObj.handleControlKeys(1, []byte{CONTROL_W, 0, 0})
+	this.So(cleObj.data, should.Resemble, []byte("hello orld"))
+	this.So(cleObj.cursorPosition, should.Equal, 6)
+
+	// No whitespace to left: deletes back to beginning of line
+	cleObj.data = []byte("hello")
+	cleObj.cursorPosition = 3 // on 'l'
+	cleObj.handleControlKeys(1, []byte{CONTROL_W, 0, 0})
+	this.So(cleObj.data, should.Resemble, []byte("o"))
+	this.So(cleObj.cursorPosition, should.BeZeroValue)
+
+	// Cursor at position 0: deletes only the char at cursor
+	cleObj.data = []byte("hello world")
+	cleObj.cursorPosition = 0 // on 'h'
+	cleObj.handleControlKeys(1, []byte{CONTROL_W, 0, 0})
+	this.So(cleObj.data, should.Resemble, []byte("ello world"))
+	this.So(cleObj.cursorPosition, should.BeZeroValue)
+}
+
 func (this *CLEFixture) TestHandleControlKeysUnrecognized() {
 	cleObj := NewCLE(TestMode(true))
 	cleObj.data = []byte("some data")

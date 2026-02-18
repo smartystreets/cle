@@ -23,6 +23,7 @@ const (
 	CONTROL_E           = 5
 	CONTROL_K           = 11
 	CONTROL_N           = 14
+	CONTROL_W           = 23
 	ENTER_KEY           = 13
 	ESCAPE_KEY          = 27
 	UP_ARROW            = 65
@@ -227,6 +228,18 @@ func (this *CLE) handleControlKeys(numRead int, work []byte) bool {
 	case CONTROL_N: // delete entire line
 		this.data = this.data[:0]
 		this.cursorPosition = 0
+		this.repaint()
+	case CONTROL_W: // delete character at cursor and all chars to the left until whitespace
+		end := this.cursorPosition
+		if end < len(this.data) {
+			end++
+		}
+		start := this.cursorPosition
+		for start > 0 && this.data[start-1] != ' ' {
+			start--
+		}
+		this.data = append(this.data[:start], this.data[end:]...)
+		this.cursorPosition = start
 		this.repaint()
 	}
 	return true
