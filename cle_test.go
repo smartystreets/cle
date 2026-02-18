@@ -511,39 +511,46 @@ func (this *CLEFixture) TestHandledAltRightArrow() {
 func (this *CLEFixture) TestHandleControlW() {
 	cleObj := NewCLE(TestMode(true))
 
-	// Cursor in the middle of a word: delete char at cursor + chars left until space
+	// Cursor in the middle of a word: delete chars to the left until space (char at cursor is not deleted)
 	cleObj.data = []byte("hello world")
 	cleObj.cursorPosition = 8 // on 'r'
 	cleObj.handleControlKeys(1, []byte{CONTROL_W, 0, 0})
-	this.So(cleObj.data, should.Resemble, []byte("hello ld"))
+	this.So(cleObj.data, should.Resemble, []byte("hello rld"))
 	this.So(cleObj.cursorPosition, should.Equal, 6)
 
-	// Cursor past end: delete chars left until space (no char at cursor)
+	// Cursor past end: delete word to the left until space
 	cleObj.data = []byte("hello world")
 	cleObj.cursorPosition = 11 // past last char
 	cleObj.handleControlKeys(1, []byte{CONTROL_W, 0, 0})
 	this.So(cleObj.data, should.Resemble, []byte("hello "))
 	this.So(cleObj.cursorPosition, should.Equal, 6)
 
-	// Cursor at start of word (right after space): deletes only the char at cursor
+	// Cursor at start of word (char to left is space): delete space and word to the left, char at cursor is not deleted
 	cleObj.data = []byte("hello world")
-	cleObj.cursorPosition = 6 // on 'w'
+	cleObj.cursorPosition = 6 // on 'w', data[5]==' '
 	cleObj.handleControlKeys(1, []byte{CONTROL_W, 0, 0})
-	this.So(cleObj.data, should.Resemble, []byte("hello orld"))
-	this.So(cleObj.cursorPosition, should.Equal, 6)
+	this.So(cleObj.data, should.Resemble, []byte("world"))
+	this.So(cleObj.cursorPosition, should.BeZeroValue)
 
-	// No whitespace to left: deletes back to beginning of line
+	// Cursor past end after trailing space: delete space and word to the left
+	cleObj.data = []byte("hello ")
+	cleObj.cursorPosition = 6 // past trailing space
+	cleObj.handleControlKeys(1, []byte{CONTROL_W, 0, 0})
+	this.So(cleObj.data, should.BeEmpty)
+	this.So(cleObj.cursorPosition, should.BeZeroValue)
+
+	// No whitespace to left: delete back to beginning of line, char at cursor not deleted
 	cleObj.data = []byte("hello")
 	cleObj.cursorPosition = 3 // on 'l'
 	cleObj.handleControlKeys(1, []byte{CONTROL_W, 0, 0})
-	this.So(cleObj.data, should.Resemble, []byte("o"))
+	this.So(cleObj.data, should.Resemble, []byte("lo"))
 	this.So(cleObj.cursorPosition, should.BeZeroValue)
 
-	// Cursor at position 0: deletes only the char at cursor
+	// Cursor at position 0: nothing to the left, nothing deleted
 	cleObj.data = []byte("hello world")
 	cleObj.cursorPosition = 0 // on 'h'
 	cleObj.handleControlKeys(1, []byte{CONTROL_W, 0, 0})
-	this.So(cleObj.data, should.Resemble, []byte("ello world"))
+	this.So(cleObj.data, should.Resemble, []byte("hello world"))
 	this.So(cleObj.cursorPosition, should.BeZeroValue)
 }
 

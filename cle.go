@@ -261,12 +261,14 @@ func (this *CLE) handleControlKeys(numRead int, work []byte) bool {
 		this.data = this.data[:0]
 		this.cursorPosition = 0
 		this.repaint()
-	case CONTROL_W: // delete character at cursor and all chars to the left until whitespace
+	case CONTROL_W: // delete word to the left; if char immediately left is whitespace, delete it too then the word left
 		end := this.cursorPosition
-		if end < len(this.data) {
-			end++
-		}
 		start := this.cursorPosition
+		if start > 0 && this.data[start-1] == ' ' {
+			for start > 0 && this.data[start-1] == ' ' {
+				start--
+			}
+		}
 		for start > 0 && this.data[start-1] != ' ' {
 			start--
 		}
