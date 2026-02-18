@@ -519,7 +519,7 @@ func (this *CLEFixture) TestHandleArrowKeysAltBackspace() {
 	this.So(cleObj.cursorPosition, should.Equal, 6)
 }
 
-func (this *CLEFixture) TestHandleArrowKeysAltD() {
+func (this *CLEFixture) TestHandleArrowKeysWordDeleteRight() {
 	cleObj := NewCLE(TestMode(true))
 	cleObj.data = []byte("hello world")
 	cleObj.cursorPosition = 6 // on 'w'
@@ -536,39 +536,39 @@ func (this *CLEFixture) TestHandleArrowKeysAltD() {
 	this.So(cleObj.data, should.Resemble, []byte("hello "))
 }
 
-func (this *CLEFixture) TestHandledAltD() {
+func (this *CLEFixture) TestHandledWordDeleteRight() {
 	cleObj := NewCLE(TestMode(true))
 	cleObj.data = []byte("hello world")
 
 	// cursor in the middle of a word → delete from cursor to end of word
 	cleObj.cursorPosition = 2 // on 'l' in "hello"
-	cleObj.handledAltD()
+	cleObj.handledWordDeleteRight()
 	this.So(cleObj.data, should.Resemble, []byte("he world"))
 	this.So(cleObj.cursorPosition, should.Equal, 2)
 
 	// cursor at start of a word → delete the whole word
 	cleObj.data = []byte("hello world")
 	cleObj.cursorPosition = 6 // on 'w'
-	cleObj.handledAltD()
+	cleObj.handledWordDeleteRight()
 	this.So(cleObj.data, should.Resemble, []byte("hello "))
 	this.So(cleObj.cursorPosition, should.Equal, 6)
 
 	// cursor on whitespace → skip whitespace, delete next word
 	cleObj.data = []byte("hello world")
 	cleObj.cursorPosition = 5 // on ' '
-	cleObj.handledAltD()
+	cleObj.handledWordDeleteRight()
 	this.So(cleObj.data, should.Resemble, []byte("hello"))
 	this.So(cleObj.cursorPosition, should.Equal, 5)
 
 	// cursor at end → nothing deleted
 	cleObj.data = []byte("hello world")
 	cleObj.cursorPosition = 11 // past last char
-	cleObj.handledAltD()
+	cleObj.handledWordDeleteRight()
 	this.So(cleObj.data, should.Resemble, []byte("hello world"))
 	this.So(cleObj.cursorPosition, should.Equal, 11)
 }
 
-func (this *CLEFixture) TestHandleControlW() {
+func (this *CLEFixture) TestHandleWordDeleteLeft() {
 	cleObj := NewCLE(TestMode(true))
 
 	// Cursor in the middle of a word: delete chars to the left until space (char at cursor is not deleted)
