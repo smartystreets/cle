@@ -508,6 +508,55 @@ func (this *CLEFixture) TestHandledAltRightArrow() {
 	this.So(cleObj.cursorPosition, should.Equal, 11)
 }
 
+func (this *CLEFixture) TestHandleArrowKeysAltD() {
+	cleObj := NewCLE(TestMode(true))
+	cleObj.data = []byte("hello world")
+	cleObj.cursorPosition = 6 // on 'w'
+
+	// ESC d: readline/xterm-style Alt+D
+	cleObj.handleArrowKeys(2, []byte{ESCAPE_KEY, 'd', 0, 0, 0, 0})
+	this.So(cleObj.data, should.Resemble, []byte("hello "))
+
+	cleObj.data = []byte("hello world")
+	cleObj.cursorPosition = 6
+
+	// macOS Terminal.app Option+D sends ∂ (U+2202, UTF-8: 0xE2 0x88 0x82)
+	cleObj.handleArrowKeys(3, []byte{0xE2, 0x88, 0x82, 0, 0, 0})
+	this.So(cleObj.data, should.Resemble, []byte("hello "))
+}
+
+func (this *CLEFixture) TestHandledAltD() {
+	cleObj := NewCLE(TestMode(true))
+	cleObj.data = []byte("hello world")
+
+	// cursor in the middle of a word → delete from cursor to end of word
+	cleObj.cursorPosition = 2 // on 'l' in "hello"
+	cleObj.handledAltD()
+	this.So(cleObj.data, should.Resemble, []byte("he world"))
+	this.So(cleObj.cursorPosition, should.Equal, 2)
+
+	// cursor at start of a word → delete the whole word
+	cleObj.data = []byte("hello world")
+	cleObj.cursorPosition = 6 // on 'w'
+	cleObj.handledAltD()
+	this.So(cleObj.data, should.Resemble, []byte("hello "))
+	this.So(cleObj.cursorPosition, should.Equal, 6)
+
+	// cursor on whitespace → skip whitespace, delete next word
+	cleObj.data = []byte("hello world")
+	cleObj.cursorPosition = 5 // on ' '
+	cleObj.handledAltD()
+	this.So(cleObj.data, should.Resemble, []byte("hello"))
+	this.So(cleObj.cursorPosition, should.Equal, 5)
+
+	// cursor at end → nothing deleted
+	cleObj.data = []byte("hello world")
+	cleObj.cursorPosition = 11 // past last char
+	cleObj.handledAltD()
+	this.So(cleObj.data, should.Resemble, []byte("hello world"))
+	this.So(cleObj.cursorPosition, should.Equal, 11)
+}
+
 func (this *CLEFixture) TestHandleControlW() {
 	cleObj := NewCLE(TestMode(true))
 

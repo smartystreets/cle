@@ -118,6 +118,13 @@ func (this *CLE) ReadInput(prompt string) []byte {
 }
 
 func (this *CLE) handleArrowKeys(numRead int, work []byte) bool {
+	// Option+D on macOS Terminal.app sends ∂ (U+2202, UTF-8: 0xE2 0x88 0x82)
+	if numRead == 3 && work[0] == 0xE2 && work[1] == 0x88 && work[2] == 0x82 {
+		this.handledAltD()
+		this.repaint()
+		return true
+	}
+
 	if numRead < 2 || work[0] != ESCAPE_KEY {
 		return false
 	}
@@ -132,6 +139,13 @@ func (this *CLE) handleArrowKeys(numRead int, work []byte) bool {
 	// ESC f: Alt+Right (readline-style, e.g. macOS Terminal.app)
 	if numRead == 2 && work[1] == 'f' {
 		this.handledAltRightArrow()
+		this.repaint()
+		return true
+	}
+
+	// ESC d: Alt+D (delete word forward)
+	if numRead == 2 && work[1] == 'd' {
+		this.handledAltD()
 		this.repaint()
 		return true
 	}
@@ -409,6 +423,17 @@ func (this *CLE) handledAltRightArrow() {
 		pos++
 	}
 	this.cursorPosition = pos
+}
+
+func (this *CLE) handledAltD() {
+	end := this.cursorPosition
+	for end < len(this.data) && this.data[end] == ' ' {
+		end++
+	}
+	for end < len(this.data) && this.data[end] != ' ' {
+		end++
+	}
+	this.data = append(this.data[:this.cursorPosition], this.data[end:]...)
 }
 
 func (this *CLE) handledUpArrow() bool {
