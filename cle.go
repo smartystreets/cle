@@ -5,6 +5,8 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/pkg/term"
 )
@@ -35,8 +37,8 @@ const (
 )
 
 type CLE struct {
-	data           []byte
-	searchFor      []byte
+	data           []rune
+	searchFor      []rune
 	terminal       *term.Term
 	prompt         string
 	cursorPosition int
@@ -76,7 +78,7 @@ func (this *CLE) configure(options []Option) *CLE {
 
 func (this *CLE) ReadInput(prompt string) []byte {
 	this.prompt = prompt
-	this.data = []byte{}
+	this.data = []rune{}
 	this.cursorPosition = 0
 	this.repaint()
 
@@ -86,12 +88,22 @@ func (this *CLE) ReadInput(prompt string) []byte {
 	}
 	defer this.closeTty()
 
+	var carry []byte // holds an incomplete trailing UTF-8 sequence split across reads
 	for {
-		work := make([]byte, 6)
-		numRead, err := this.terminal.Read(work)
+		buffer := make([]byte, 6)
+		numRead, err := this.terminal.Read(buffer)
 		if this.handleError(err) {
 			continue
 		}
+
+		// Prepend any bytes carried over from a multibyte character that was
+		// split across the previous read so it can be decoded as a whole.
+		work := buffer[:numRead]
+		if len(carry) > 0 {
+			work = append(carry, work...)
+			carry = nil
+		}
+		numRead = len(work)
 
 		if this.handleArrowKeys(numRead, work) {
 			continue
@@ -106,14 +118,14 @@ func (this *CLE) ReadInput(prompt string) []byte {
 		}
 
 		if this.handleEnterKey(numRead, work) {
-			return this.data
+			return []byte(string(this.data))
 		}
 
 		if this.handleAnySingleKey(numRead, work) {
 			continue
 		}
 
-		this.handlePaste(work)
+		carry = this.handlePaste(work)
 	}
 }
 
@@ -186,7 +198,7 @@ func (this *CLE) handleArrowKeys(numRead int, work []byte) bool {
 	case DOWN_ARROW:
 		if !this.handledDownArrow() {
 			if this.isSearching() {
-				this.data = append(this.data[:0], this.searchModeChar)
+				this.data = append(this.data[:0], rune(this.searchModeChar))
 				this.data = append(this.data, this.searchFor...)
 				this.cursorPosition = len(this.data)
 				this.clearSearchMode()
@@ -221,7 +233,7 @@ func (this *CLE) handleEnterKey(numRead int, work []byte) bool {
 		return false
 	}
 
-	if len(this.data) > 0 && this.data[0] == this.searchModeChar {
+	if len(this.data) > 0 && this.data[0] == rune(this.searchModeChar) {
 		this.clearInputData()
 		return true
 	}
@@ -297,21 +309,32 @@ func (this *CLE) handleAnySingleKey(numRead int, work []byte) bool {
 	if !isPrintable(work[0]) {
 		return true
 	}
-	this.data = insert(this.data, this.cursorPosition, work[0])
+	this.data = insert(this.data, this.cursorPosition, rune(work[0]))
 	this.cursorPosition++
 	this.repaint()
 	return true
 }
 
-func (this *CLE) handlePaste(work []byte) {
-	for _, c := range work {
-		if !isPrintable(c) {
+// handlePaste decodes work as UTF-8 and inserts each printable character at the
+// cursor. If work ends with an incomplete multibyte sequence (a character split
+// across terminal reads), those trailing bytes are returned so the caller can
+// prepend them to the next read.
+func (this *CLE) handlePaste(work []byte) (carry []byte) {
+	for len(work) > 0 {
+		if !utf8.FullRune(work) {
+			carry = work
+			break
+		}
+		r, size := utf8.DecodeRune(work)
+		work = work[size:]
+		if r == utf8.RuneError || !isInsertableRune(r) {
 			continue
 		}
-		this.data = insert(this.data, this.cursorPosition, c)
+		this.data = insert(this.data, this.cursorPosition, r)
 		this.cursorPosition++
 	}
 	this.repaint()
+	return carry
 }
 
 func (this *CLE) repaint() {
@@ -364,13 +387,13 @@ func (this *CLE) isSearching() bool {
 }
 
 func (this *CLE) searchMatch(i int) bool {
+	command := strings.ToLower(string(this.history.commands[i]))
 	equalsPrevious := false
 	if this.history.currentPosition < len(this.history.commands) {
-		//equalsPrevious = bytes.Compare(bytes.ToLower(this.history.commands[i]), bytes.ToLower(this.history.commands[this.history.currentPosition])) == 0
-		equalsPrevious = bytes.Equal(bytes.ToLower(this.history.commands[i]), bytes.ToLower(this.data))
+		equalsPrevious = command == strings.ToLower(string(this.data))
 	}
 
-	if !equalsPrevious && bytes.Contains(bytes.ToLower(this.history.commands[i]), bytes.ToLower(this.searchFor)) {
+	if !equalsPrevious && strings.Contains(command, strings.ToLower(string(this.searchFor))) {
 		this.history.currentPosition = i
 		return true
 	}
@@ -452,7 +475,7 @@ func (this *CLE) handledUpArrow() bool {
 		this.clearSearchMode()
 	}
 
-	if !this.isSearching() && len(this.data) > 1 && this.data[0] == this.searchModeChar {
+	if !this.isSearching() && len(this.data) > 1 && this.data[0] == rune(this.searchModeChar) {
 		this.searchFor = append(this.searchFor, this.data[1:]...)
 	}
 
@@ -494,7 +517,7 @@ func (this *CLE) handledDownArrow() bool {
 
 func (this *CLE) populateDataWithHistoryEntry() {
 	this.clearInputData()
-	this.data = append(this.data, this.getCurrentHistoryEntry()...)
+	this.data = append(this.data, []rune(string(this.getCurrentHistoryEntry()))...)
 	this.cursorPosition = len(this.data)
 }
 
@@ -504,8 +527,7 @@ func (this *CLE) saveHistoryEntry() {
 			return
 		}
 
-		entry := make([]byte, len(this.data))
-		copy(entry, this.data)
+		entry := []byte(string(this.data))
 		this.history.commands = append(this.history.commands, entry)
 		this.history.currentPosition = len(this.history.commands)
 	}
@@ -513,7 +535,7 @@ func (this *CLE) saveHistoryEntry() {
 
 func (this *CLE) commandIsAlreadyPreviousEntryInHistory() bool {
 	return len(this.history.commands) > 0 &&
-		bytes.Equal(this.history.commands[len(this.history.commands)-1], this.data)
+		string(this.history.commands[len(this.history.commands)-1]) == string(this.data)
 }
 
 func (this *CLE) getCurrentHistoryEntry() []byte {
@@ -597,25 +619,33 @@ func isPrintable(c byte) bool {
 	return c >= 32 && c <= 126
 }
 
+// isInsertableRune reports whether a decoded character should be inserted into
+// the buffer. This covers printable ASCII plus any non-ASCII rune (>= 0x80), so
+// pasted non-ASCII characters (e.g. accented letters like "Á") are preserved
+// instead of being dropped, while control characters and DEL are excluded.
+func isInsertableRune(r rune) bool {
+	return r >= 32 && r != 127
+}
+
 func isControlKey(numRead int, work []byte) bool {
 	return numRead == 1 && work[0] < ESCAPE_KEY && work[0] != ENTER_KEY
 }
 
-func insert(slice []byte, position int, character byte) []byte {
+func insert(slice []rune, position int, value rune) []rune {
 	if position > len(slice)-1 {
-		return append(slice, character)
+		return append(slice, value)
 	}
 	slice = append(slice, 0)
 	copy(slice[position+1:], slice[position:])
-	slice[position] = character
+	slice[position] = value
 	return slice
 }
 
-func remove(slice []byte, position int) []byte {
+func remove(slice []rune, position int) []rune {
 	if position > len(slice)-1 {
 		return slice
 	}
-	ret := make([]byte, 0)
+	ret := make([]rune, 0)
 	ret = append(ret, slice[:position]...)
 	return append(ret, slice[position+1:]...)
 }
